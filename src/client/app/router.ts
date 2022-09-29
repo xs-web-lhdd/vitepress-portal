@@ -38,6 +38,7 @@ export function createRouter(
   loadPageModule: (path: string) => Promise<PageModule>,
   fallbackComponent?: Component
 ): Router {
+  // 对默认的 route 表进行响应式处理
   const route = reactive(getDefaultRoute())
 
   function go(href: string = inBrowser ? location.href : '/') {
@@ -52,7 +53,10 @@ export function createRouter(
     }
     if (inBrowser) {
       // save scroll position before changing url
+      // 在改变 url （跳转）之前保存滚动的位置,提前埋好滚动的位置
       history.replaceState({ scrollPosition: window.scrollY }, document.title)
+
+      // history.pushState(state, title[, url]) 方法向当前浏览器会话的历史堆栈中添加一个状态（state）。该方法不会触发 hashChange
       history.pushState(null, '', href)
     }
     return loadPage(href)
@@ -62,12 +66,15 @@ export function createRouter(
 
   async function loadPage(href: string, scrollPosition = 0, isRetry = false) {
     const targetLoc = new URL(href, fakeHost)
+    // 准备加载的 url 的 path
     const pendingPath = (latestPendingPath = targetLoc.pathname)
     try {
+      // 将路径对应的页面(组件)异步的加载进来
       let page = await loadPageModule(pendingPath)
       if (latestPendingPath === pendingPath) {
         latestPendingPath = null
 
+        // 看 node/markdownToVue 的 injectPageDataCode 函数就知道为啥这里有 __pageData 了
         const { default: comp, __pageData } = page
         if (!comp) {
           throw new Error(`Invalid route component: ${comp}`)
@@ -81,6 +88,7 @@ export function createRouter(
 
         if (inBrowser) {
           nextTick(() => {
+            // 有 hash 没有 scrollPosition 就滚动到 hash 值的位置
             if (targetLoc.hash && !scrollPosition) {
               let target: HTMLElement | null = null
               try {
@@ -121,6 +129,7 @@ export function createRouter(
         route.path = inBrowser ? pendingPath : withBase(pendingPath)
         // 如果匹配不到路径，那么就是用 fallbackComponent (一般都是 404 页面)
         route.component = fallbackComponent ? markRaw(fallbackComponent) : null
+        // 找不到页面的数据
         route.data = notFoundPageData
       }
     }
@@ -168,10 +177,13 @@ export function createRouter(
       { capture: true }
     )
 
+    // TODO: vitepress 如何保持页面切换时页面滚动的状态不丢失呢?
     window.addEventListener('popstate', (e) => {
+      // 回退页面时会取出之前保存在 state 中的 scrollPosition 然后滚动过去
       loadPage(location.href, (e.state && e.state.scrollPosition) || 0)
     })
 
+    // hash 改变时组织默认的行为
     window.addEventListener('hashchange', (e) => {
       e.preventDefault()
     })
@@ -186,7 +198,7 @@ export function createRouter(
 }
 
 export function useRouter(): Router {
-  // 从全局拿出 router 的实例，其实就是 createRouter 函数的执行返回值
+  // 从全局实例 app 拿出 router 的实例，其实就是 createRouter 函数的执行返回值
   const router = inject(RouterSymbol)
   if (!router) {
     throw new Error('useRouter() is called without provider.')
@@ -194,6 +206,7 @@ export function useRouter(): Router {
   return router
 }
 
+// 暴露给用户的 useRoute，其实就是返回 router 实例中的 route
 export function useRoute(): Route {
   return useRouter().route
 }
@@ -225,6 +238,7 @@ function scrollTo(el: HTMLElement, hash: string, smooth = false) {
       offset +
       targetPadding
     // only smooth scroll if distance is smaller than screen height.
+    // 只有目标位置和自身位置小于屏幕高度时才进行 平滑滚动
     if (!smooth || Math.abs(targetTop - window.scrollY) > window.innerHeight) {
       window.scrollTo(0, targetTop)
     } else {
@@ -237,7 +251,7 @@ function scrollTo(el: HTMLElement, hash: string, smooth = false) {
   }
 }
 
-// vite 中的 HMR
+// vite 中的 HMR，这个热更新和 node/plugin 里面的热更新钩子函数所对应
 function handleHMR(route: Route): void {
   // update route.data on HMR updates of active page
   if (import.meta.hot) {

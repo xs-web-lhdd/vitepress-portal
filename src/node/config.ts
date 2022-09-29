@@ -148,6 +148,8 @@ const resolve = (root: string, file: string) =>
 
 /**
  * Type config helper
+ * 为了更好的类型提示，没有什么其他效果
+ * https://vitepress.vuejs.org/config/introduction#config-intellisense
  */
 export function defineConfig(config: UserConfig<DefaultTheme.Config>) {
   return config

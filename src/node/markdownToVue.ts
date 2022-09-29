@@ -27,6 +27,7 @@ export interface MarkdownCompileResult {
   includes: string[]
 }
 
+// 清空 LRU 缓存
 export function clearCache() {
   cache.clear()
 }
@@ -41,7 +42,9 @@ export async function createMarkdownToVueRenderFn(
   includeLastUpdatedData = false,
   cleanUrls: CleanUrlsMode = 'disabled'
 ) {
+  // 创建一个已经为 markdown-it 实例配置过 plugin 的实例
   const md = await createMarkdownRenderer(srcDir, options, base)
+  // slash 把所有 \ 改成 /
   pages = pages.map((p) => slash(p.replace(/\.md$/, '')))
   const replaceRegex = genReplaceRegexp(userDefines, isBuild)
 
@@ -51,9 +54,12 @@ export async function createMarkdownToVueRenderFn(
     publicDir: string
   ): Promise<MarkdownCompileResult> => {
     const relativePath = slash(path.relative(srcDir, file))
+    // 拿到文件目录
     const dir = path.dirname(file)
+    // 缓存的 key
     const cacheKey = JSON.stringify({ src, file })
 
+    // 有缓存取出返回
     const cached = cache.get(cacheKey)
     if (cached) {
       debug(`[cache hit] ${relativePath}`)
@@ -71,6 +77,7 @@ export async function createMarkdownToVueRenderFn(
         includes.push(slash(includePath))
         return content
       } catch (error) {
+        // 如果文件不存在，则静默忽略错误
         return m // silently ignore error if file is not present
       }
     })
@@ -81,6 +88,7 @@ export async function createMarkdownToVueRenderFn(
       relativePath,
       cleanUrls
     }
+    // 将 md 渲染成 html
     const html = md.render(src, env)
     const {
       frontmatter = {},
@@ -90,6 +98,7 @@ export async function createMarkdownToVueRenderFn(
       title = ''
     } = env
 
+    // TODO: 不知道干啥的这一步
     // validate data.links
     const deadLinks: string[] = []
     const recordDeadLink = (url: string) => {
@@ -133,6 +142,7 @@ export async function createMarkdownToVueRenderFn(
       }
     }
 
+    // 拿到页面对应的数据
     const pageData: PageData = {
       title: inferTitle(md, frontmatter, title),
       titleTemplate: frontmatter.titleTemplate as any,
@@ -142,6 +152,7 @@ export async function createMarkdownToVueRenderFn(
       relativePath
     }
 
+    // 更新时间戳
     if (includeLastUpdatedData) {
       pageData.lastUpdated = await getGitTimestamp(file)
     }
@@ -241,15 +252,14 @@ function injectPageDataCode(
     tags[existingScriptIndex] = tagSrc.replace(
       scriptRE,
       code +
-        (hasDefaultExport
-          ? ``
-          : `\nexport default {name:'${data.relativePath}'}`) +
-        `</script>`
+      (hasDefaultExport
+        ? ``
+        : `\nexport default {name:'${data.relativePath}'}`) +
+      `</script>`
     )
   } else {
     tags.unshift(
-      `<script ${isUsingTS ? 'lang="ts"' : ''}>${code}\nexport default {name:'${
-        data.relativePath
+      `<script ${isUsingTS ? 'lang="ts"' : ''}>${code}\nexport default {name:'${data.relativePath
       }'}</script>`
     )
   }

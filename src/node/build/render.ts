@@ -25,7 +25,9 @@ export async function renderPage(
   pageToHashMap: Record<string, string>,
   hashMapString: string
 ) {
+  // 拿到路由的 path
   const routePath = `/${page.replace(/\.md$/, '')}`
+  // 拿到站点的数据
   const siteData = resolveSiteDataByRoute(config.site, routePath)
 
   // render page
@@ -63,7 +65,7 @@ export async function renderPage(
         ? [appChunk.fileName]
         : []
       : result && appChunk
-      ? [
+        ? [
           ...new Set([
             // resolve imports for index.js + page.md.js and inject script tags
             // for them as well so we fetch everything as early as possible
@@ -73,7 +75,7 @@ export async function renderPage(
             appChunk.fileName
           ])
         ]
-      : []
+        : []
 
   let prefetchLinks: string[] = []
 
@@ -86,21 +88,19 @@ export async function renderPage(
   const preloadLinksString = preloadLinks
     .map((file) => {
       // rel="modulepreload" 用来预加载原生模块脚本
-      return `<link rel="modulepreload" href="${
-        EXTERNAL_URL_RE.test(file) ? '' : siteData.base // don't add base to external urls 外链不需要添加 base 地址
-      }${file}">`
+      return `<link rel="modulepreload" href="${EXTERNAL_URL_RE.test(file) ? '' : siteData.base // don't add base to external urls 外链不需要添加 base 地址
+        }${file}">`
     })
     .join('\n    ')
 
   const prefetchLinkString = prefetchLinks
     .map((file) => {
       // prefetch表示预获取，通常是一些静态资源
-      return `<link rel="prefetch" href="${
-        EXTERNAL_URL_RE.test(file) ? '' : siteData.base // don't add base to external urls 外链不需要添加 base 地址
-      }${file}">`
+      return `<link rel="prefetch" href="${EXTERNAL_URL_RE.test(file) ? '' : siteData.base // don't add base to external urls 外链不需要添加 base 地址
+        }${file}">`
     })
     .join('\n    ')
-  
+
   /* css 链接 */
   const stylesheetLink = cssChunk
     ? `<link rel="stylesheet" href="${siteData.base}${cssChunk.fileName}">`
@@ -146,15 +146,13 @@ export async function renderPage(
   </head>
   <body>
     <div id="app">${content}</div>
-    ${
-      config.mpa
-        ? ''
-        : `<script>__VP_HASH_MAP__ = JSON.parse(${hashMapString})</script>`
+    ${config.mpa
+      ? ''
+      : `<script>__VP_HASH_MAP__ = JSON.parse(${hashMapString})</script>`
     }
-    ${
-      appChunk
-        ? `<script type="module" async src="${siteData.base}${appChunk.fileName}"></script>`
-        : ``
+    ${appChunk
+      ? `<script type="module" async src="${siteData.base}${appChunk.fileName}"></script>`
+      : ``
     }
     ${inlinedScript}
   </body>

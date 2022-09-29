@@ -1,3 +1,7 @@
+/**
+ * 这个文件里面是 vitepress 中所有 plugin 的入口,涵盖所有 plugin 包括 vitepress 的内置 plugin 和 vueplugin 以及 markdownToVue 的 plugin 和对 markdown-it 进行扩展的 plugin 等等
+ */
+
 import path from 'path'
 import c from 'picocolors'
 import { defineConfig, mergeConfig, Plugin, ResolvedConfig } from 'vite'
@@ -23,6 +27,7 @@ const staticRestoreRE = /__VP_STATIC_(START|END)__/g
 // matches client-side js blocks in MPA mode.
 // in the future we may add different execution strategies like visible or
 // media queries.
+// 匹配MPA模式下的客户端js块。将来我们可能会添加不同的执行策略，比如可见查询或媒体查询。
 const scriptClientRE = /<script\b[^>]*client\b[^>]*>([^]*?)<\/script>/
 
 const isPageChunk = (
@@ -69,9 +74,9 @@ export async function createVitePressPlugin(
   const processClientJS = (code: string, id: string) => {
     return scriptClientRE.test(code)
       ? code.replace(scriptClientRE, (_, content) => {
-          if (ssr && clientJSMap) clientJSMap[id] = content
-          return `\n`.repeat(_.split('\n').length - 1)
-        })
+        if (ssr && clientJSMap) clientJSMap[id] = content
+        return `\n`.repeat(_.split('\n').length - 1)
+      })
       : code
   }
 
@@ -87,7 +92,7 @@ export async function createVitePressPlugin(
       config = resolvedConfig
       markdownToVue = await createMarkdownToVueRenderFn(
         srcDir,
-        markdown,
+        markdown, // config.js 中 markdown 选项，就是用户配置的 markdown 选项
         pages,
         config.define,
         config.command === 'build',
@@ -146,6 +151,7 @@ export async function createVitePressPlugin(
         return processClientJS(code, id)
       } else if (id.endsWith('.md')) {
         // transform .md files into vueSrc so plugin-vue can handle it
+        // 将 md 文件转换为 vueSrc 以便 plugin-vue 能处理它
         const { vueSrc, deadLinks, includes } = await markdownToVue(
           code,
           id,
@@ -260,6 +266,7 @@ export async function createVitePressPlugin(
       }
     },
 
+    // 和 client/app/router 中的 HMR 所对应
     async handleHotUpdate(ctx) {
       const { file, read, server } = ctx
       if (file === configPath || configDeps.includes(file)) {
@@ -283,6 +290,7 @@ export async function createVitePressPlugin(
       // hot reload .md files as .vue files
       if (file.endsWith('.md')) {
         const content = await read()
+        // .md 文件更新后重新通过 markdownToVue 编译成 vueSrc
         const { pageData, vueSrc } = await markdownToVue(
           content,
           file,
@@ -290,18 +298,23 @@ export async function createVitePressPlugin(
         )
 
         const payload: PageDataPayload = {
+          // 文件路径
           path: `/${slash(path.relative(srcDir, file))}`,
+          // 页面数据
           pageData
         }
 
         // notify the client to update page data
+        // 给客户端发动信息,告诉客户端去进行更新页面
         server.ws.send({
           type: 'custom',
+          // 热更新时 event 的名字是 vitepress:pageData
           event: 'vitepress:pageData',
           data: payload
         })
 
         // overwrite src so vue plugin can handle the HMR
+        // 覆盖src, vue插件可以处理HMR
         ctx.read = () => vueSrc
       }
     }

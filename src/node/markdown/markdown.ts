@@ -105,6 +105,7 @@ export type { Header }
 
 export const createMarkdownRenderer = async (
   srcDir: string,
+  // config.js 中的 markdown 选项（就是 vitepress 中暴露出来给用户配置 markdown 的 config）
   options: MarkdownOptions = {},
   base = '/'
 ): Promise<MarkdownRenderer> => {

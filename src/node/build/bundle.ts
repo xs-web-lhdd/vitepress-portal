@@ -1,6 +1,7 @@
 import ora from 'ora'
 import path from 'path'
 import fs from 'fs-extra'
+// 用 vite 的 build 进行打包
 import { build, BuildOptions, UserConfig as ViteUserConfig } from 'vite'
 import { RollupOutput } from 'rollup'
 import { slash } from '../utils/slash'
@@ -28,14 +29,17 @@ export async function bundle(
   // this is a multi-entry build - every page is considered an entry chunk
   // the loading is done via filename conversion rules so that the
   // metadata doesn't need to be included in the main chunk.
+  // 这是一个多条目构建—每个页面都被认为是一个条目块，加载是通过文件名转换规则完成的，因此 meta 数据不需要包含在主块中。
   const input: Record<string, string> = {}
   config.pages.forEach((file) => {
     // page filename conversion
     // foo/bar.md -> foo_bar.md
+    // 页面文件名转换,将 foo/bar.md 转换为 foo_bar.md
     input[slash(file).replace(/\//g, '_')] = path.resolve(config.srcDir, file)
   })
 
   // resolve options to pass to vite
+  // 解析传递给vite的选项
   const { rollupOptions } = options
 
   const resolveViteConfig = async (ssr: boolean): Promise<ViteUserConfig> => ({
@@ -71,31 +75,31 @@ export async function bundle(
           ...rollupOptions?.output,
           ...(ssr
             ? {
-                entryFileNames: `[name].js`,
-                chunkFileNames: `[name].[hash].js`
-              }
+              entryFileNames: `[name].js`,
+              chunkFileNames: `[name].[hash].js`
+            }
             : {
-                chunkFileNames(chunk) {
-                  // avoid ads chunk being intercepted by adblock
-                  return /(?:Carbon|BuySell)Ads/.test(chunk.name)
-                    ? `assets/chunks/ui-custom.[hash].js`
-                    : `assets/chunks/[name].[hash].js`
-                },
-                manualChunks(id, ctx) {
-                  // move known framework code into a stable chunk so that
-                  // custom theme changes do not invalidate hash for all pages
-                  if (id.includes('plugin-vue:export-helper')) {
-                    return 'framework'
-                  }
-                  if (
-                    isEagerChunk(id, ctx) &&
-                    (/@vue\/(runtime|shared|reactivity)/.test(id) ||
-                      /vitepress\/dist\/client/.test(id))
-                  ) {
-                    return 'framework'
-                  }
+              chunkFileNames(chunk) {
+                // avoid ads chunk being intercepted by adblock
+                return /(?:Carbon|BuySell)Ads/.test(chunk.name)
+                  ? `assets/chunks/ui-custom.[hash].js`
+                  : `assets/chunks/[name].[hash].js`
+              },
+              manualChunks(id, ctx) {
+                // move known framework code into a stable chunk so that
+                // custom theme changes do not invalidate hash for all pages
+                if (id.includes('plugin-vue:export-helper')) {
+                  return 'framework'
                 }
-              })
+                if (
+                  isEagerChunk(id, ctx) &&
+                  (/@vue\/(runtime|shared|reactivity)/.test(id) ||
+                    /vitepress\/dist\/client/.test(id))
+                ) {
+                  return 'framework'
+                }
+              }
+            })
         }
       },
       // minify with esbuild in MPA mode (for CSS)
@@ -106,6 +110,7 @@ export async function bundle(
   let clientResult: RollupOutput
   let serverResult: RollupOutput
 
+  // 开始打包:
   const spinner = ora()
   spinner.start('building client + server bundles...')
   try {
@@ -119,6 +124,7 @@ export async function bundle(
     })
     throw e
   }
+  // 成功打包
   spinner.stopAndPersist({
     symbol: okMark
   })

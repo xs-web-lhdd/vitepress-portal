@@ -1,3 +1,7 @@
+// 此文件中的导出通过'vitepress'暴露给主题和md文件
+// 所以使用者可以通过 `import { useRoute, useSiteData } from 'vitepress'` 导入
+// 所以在使用的时候导入的 vitepress 都是导入这个文件内的内容的
+
 // exports in this file are exposed to themes and md files via 'vitepress'
 // so the user can do `import { useRoute, useSiteData } from 'vitepress'`
 

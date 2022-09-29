@@ -4,6 +4,7 @@ import { resolveConfig } from './config'
 import { createVitePressPlugin } from './plugin'
 
 export async function createServer(
+  // process.cwd() 方法返回的是 Node.js 进程的当前工作目录。
   root: string = process.cwd(),
   serverOptions: ServerOptions = {},
   recreateServer?: () => Promise<void>
